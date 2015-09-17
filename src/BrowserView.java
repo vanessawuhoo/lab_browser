@@ -61,6 +61,7 @@ public class BrowserView {
     private Button myBackButton;
     private Button myNextButton;
     private Button myHomeButton;
+    private Button addToFavorites;
     // favorites
     private ComboBox<String> myFavorites;
     // get strings from resource file
@@ -75,6 +76,7 @@ public class BrowserView {
         myModel = model;
         // use resources for labels
         myResources = ResourceBundle.getBundle(DEFAULT_RESOURCE_PACKAGE + language);
+        
         BorderPane root = new BorderPane();
         // must be first since other panels may refer to page
         root.setCenter(makePageDisplay());
@@ -84,20 +86,22 @@ public class BrowserView {
         enableButtons();
         // create scene to hold UI
         myScene = new Scene(root, DEFAULT_SIZE.width, DEFAULT_SIZE.height);
-        //myScene.getStylesheets().add(DEFAULT_RESOURCE_PACKAGE + STYLESHEET);
+        myScene.getStylesheets().add(DEFAULT_RESOURCE_PACKAGE + STYLESHEET);
     }
 
     /**
      * Display given URL.
      */
     public void showPage (String url) {
-        URL valid = myModel.go(url);
-        if (url != null) {
-            update(valid);
-        }
-        else {
-            showError("Could not load " + url);
-        }
+        URL valid;
+		try {
+			valid = myModel.go(url);
+			update(valid);
+		} catch (BrowserException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			showError("Could not load " + url);
+		}
     }
 
     /**
@@ -126,22 +130,39 @@ public class BrowserView {
 
     // move to the next URL in the history
     private void next () {
-        update(myModel.next());
+        try {
+			update(myModel.next());
+		} catch (BrowserException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     // move to the previous URL in the history
     private void back () {
-        update(myModel.back());
+        try {
+			update(myModel.back());
+		} catch (BrowserException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     // change current URL to the home page, if set
     private void home () {
         showPage(myModel.getHome().toString());
     }
+    
+    
 
     // change page to favorite choice
     private void showFavorite (String favorite) {
-        showPage(myModel.getFavorite(favorite).toString());
+        try {
+			showPage(myModel.getFavorite(favorite).toString());
+		} catch (BrowserException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     // update just the view to display given URL
@@ -225,6 +246,11 @@ public class BrowserView {
             myModel.setHome();
             enableButtons();
         }));
+        myFavorites = new ComboBox<String>();
+        myFavorites.setPromptText(myResources.getString("FavoriteFirstItem"));
+        myFavorites.valueProperty().addListener((o, s1, s2) -> showFavorite(s2));
+        result.getChildren().add(makeButton("AddFavoriteCommand", event -> addFavorite()));
+        result.getChildren().add(myFavorites);
         return result;
     }
 
@@ -235,6 +261,7 @@ public class BrowserView {
             String.format(".*\\.(%s)", String.join("|", ImageIO.getReaderFileSuffixes()));
 
         Button result = new Button();
+
         String label = myResources.getString(property);
         if (label.matches(IMAGEFILE_SUFFIXES)) {
             result.setGraphic(new ImageView(
